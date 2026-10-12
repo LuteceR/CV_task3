@@ -168,15 +168,11 @@ while running:
     screen.fill((30, 30, 30))
     pygame.draw.rect(screen, (50, 50, 70), (0, 0, SIZE_SCREEN[0], 120))
     screen.blit(display_image, image_rect)
-    # screen.blit(gray_image, (250, 100), image_rect)
-
-    # screen.blit(red_image, (0, 250), image_rect)
-    # screen.blit(green_image, (250, 250), image_rect)
-    # screen.blit(blue_image, (500, 250), image_rect)
 
     # screen.blit(hist_red_surf, (10, 500))
     # screen.blit(hist_green_surf, (260, 500))
     # screen.blit(hist_blue_surf, (510, 500))
+
     # Отслеживание положения мыши
     mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -195,8 +191,18 @@ while running:
         if area.width > 0 and area.height > 0:
             piece = display_image.subsurface(area).copy()
 
-            avg_r, avg_g, avg_b, avg_a = pygame.transform.average_color(piece)
-            avg_all = (avg_r + avg_g + avg_b) / 3
+            rgb_piece = pygame.surfarray.array3d(piece)
+            r_channel = rgb_piece[:,:, 0]
+            g_channel = rgb_piece[:,:, 1]
+            b_channel = rgb_piece[:,:, 2]
+            
+            avg_r = r_channel.sum() / r_channel.size
+            avg_g = g_channel.sum() / g_channel.size
+            avg_b = b_channel.sum() / b_channel.size
+            
+            S_red = ((r_channel - avg_r)**2).sum() / r_channel.size
+            S_green = ((g_channel - avg_g)**2).sum() / g_channel.size
+            S_blue = ((b_channel - avg_b)**2).sum() / b_channel.size
 
             piece = pygame.transform.scale(
                 piece, (area.width * ZOOM_SCALE, area.height * ZOOM_SCALE)
@@ -206,9 +212,9 @@ while running:
 
         text = font.render(f"R: {color.r} G: {color.g} B: {color.b}", True, (255, 255, 255))
         screen.blit(text, (10, 10))
-        slider_text = font.render(f"Координаты p = {image_x, image_y}\n" +
-                                  f"Интенсивность : {round((color.r + color.g + color.b)/3, 3)}\n" + 
-                                  f"Среднее μ_Wp = {round(avg_all, 3)} | стандартное отклонение S_Wp = {round(((avg_r - avg_all)**2 + (avg_g - avg_all)**2 + (avg_b - avg_all)**2)/3, 3)}", 
+        slider_text = font.render(f"Координаты p = {image_x, image_y} | Интенсивность : {round((color.r + color.g + color.b)/3, 2)}\n" +
+                                  f"μ_Wp(RED) = {round(r_channel.sum() / r_channel.size, 2)}, μ_Wp(GREEN) = {round(g_channel.sum() / g_channel.size, 2)}, μ_Wp(BLUE) = {round(b_channel.sum() / b_channel.size, 2)}\n" +  
+                                  f"S_Wp(RED) = {round(S_red, 2)}, S_Wp(GREEN) = {round(S_green, 2)}, S_Wp(BLUE) = {round(S_blue, 2)},", 
                                    True, (255, 255, 255))
         screen.blit(slider_text, (10, 70))
 
