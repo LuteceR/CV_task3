@@ -8,6 +8,7 @@ from PIL import Image
 
 from pathlib import Path
 import numpy as np
+import math
 # ================================= !!!! НА КНОПКУ "0" ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ !!!!!! ==========================
 from ui import create_sliders
 
@@ -47,6 +48,7 @@ with Image.open(IMAGE) as img:
 pygame.init()
 pygame.display.set_caption("python gaming 4k")
 screen = pygame.display.set_mode(SIZE_SCREEN)
+clock = pygame.time.Clock()
 
 channel_mode_manager = pygame_gui.UIManager(SIZE_SCREEN, BASE_DIR / "theme.json")
 effects_mode_manager = pygame_gui.UIManager(SIZE_SCREEN, BASE_DIR / "theme.json")
@@ -144,17 +146,70 @@ def process(rgb_image, mode):
         rgb_image[:, :, :2] = 0
     return rgb_image
 
+
+def update_image():
+    if showmode == M_CHANNELS:
+        update_image_with_channels()
+    else:
+        update_image_with_effects()
+
 # обновление изображения на экране в зависимости от положения слайдера
-def update_display_image():
+def update_image_with_channels():
     global display_image
     x = int(slider_value)
     image = rgb.copy()
     image[:x] = process(rgb[:x], modes_button.selected_option[0])
     surf = pygame.surfarray.make_surface(image).convert_alpha()
-    pygame.surfarray.pixels_alpha(surf)[:] = alpha      # применение прозрачности
     display_image = surf
 
-clock = pygame.time.Clock()
+
+def update_image_with_effects():
+    global display_image
+
+    image = rgb.astype(np.float32)
+
+    # Смена источников RGB-каналов
+    CHANNELS = ["Red", "Green", "Blue"]
+    r_source = CHANNELS.index(select_r_source.selected_option[0])
+    g_source = CHANNELS.index(select_g_source.selected_option[0])
+    b_source = CHANNELS.index(select_b_source.selected_option[0])
+    image = image[:, :, [r_source, g_source, b_source]]
+
+    channel_levels = np.array([
+        r_level_slider.get_current_value(),
+        g_level_slider.get_current_value(),
+        b_level_slider.get_current_value(),
+    ], dtype=np.float32)
+
+    image *= channel_levels
+
+    contrast = contrast_slider.get_current_value()
+    image = 256 / (1 + np.exp(contrast * (1/2 - (image/256.))))
+
+    image = np.clip(np.rint(image), 0, 255).astype(np.uint8)
+
+    flip_h = mirror_h.get_state()
+    flip_v = mirror_v.get_state()
+
+    image_alpha = alpha.copy()
+
+    if flip_h:
+        image = image[::-1, :, :]
+        image_alpha = image_alpha[::-1, :]
+
+    if flip_v:
+        image = image[:, ::-1, :]
+        image_alpha = image_alpha[:, ::-1]
+
+    surf = pygame.surfarray.make_surface(
+        np.ascontiguousarray(image)
+    ).convert_alpha()
+
+    surface_alpha = pygame.surfarray.pixels_alpha(surf)
+    surface_alpha[:] = image_alpha
+    del surface_alpha
+
+    display_image = surf
 
 
 def draw_channels():
@@ -222,6 +277,8 @@ def draw_effects():
     # Делаем слайдеры для каждой настройки и разделители между ними в create_sliders()
     # НЕ УСЛОЖНЯЕМ ИНТЕРФЕЙС И СЕБЕ ЖИЗНЬ!
     screen.fill((30, 30, 30))
+    screen.blit(display_image, image_rect)
+
     effects_mode_manager.draw_ui(screen)
 
 
@@ -232,20 +289,24 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
-            update_display_image()
+        elif event.type in [pygame_gui.UI_CHECK_BOX_CHECKED, 
+                            pygame_gui.UI_CHECK_BOX_UNCHECKED, 
+                            pygame_gui.UI_DROP_DOWN_MENU_CHANGED]:
+            update_image()
         elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
             slider_value = event.value
-            update_display_image()
+            update_image()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_0:
                 showmode = M_EFFECTS if showmode == M_CHANNELS else M_CHANNELS
+                update_image()
+
         channel_mode_manager.process_events(event)
         effects_mode_manager.process_events(event)
 
     if showmode == M_CHANNELS:
-        channel_mode_manager.update(time_delta)
         draw_channels()
+        channel_mode_manager.update(time_delta)
     else:
         draw_effects()
         effects_mode_manager.update(time_delta)
