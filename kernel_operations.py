@@ -17,6 +17,6 @@ def the_four_connectivity(rgb: np.ndarray) -> np.ndarray:
 
 def drunk_filter(rgb: np.ndarray, d: int) -> np.ndarray:
     filtered_rgb = np.pad(rgb.astype('f'), ((d, d), (d, d), (0, 0)), mode='edge') # добавление pad для фото, который является копией самих пикселей. Нужно для 4 и 8-ми связностей
-    res = (filtered_rgb[2*d:,2*d:] +
-           filtered_rgb[:-2*d,:-2*d])
+    res = (filtered_rgb[2*d:,2*d:] * 0.5 +
+           filtered_rgb[:-2*d,:-2*d] * 0.5)
     return (res).astype(rgb.dtype)
