@@ -10,35 +10,35 @@ def create_sliders(mngr, screen_size):
     CHANNELS = ["Red", "Green", "Blue"]
     select_r_source = pygame_gui.elements.UIDropDownMenu(options_list=CHANNELS,
                                                       starting_option=CHANNELS[0],
-                                                      relative_rect=pygame.Rect((screen_size[0] - 200, 30), (60, 30)),
+                                                      relative_rect=pygame.Rect((30, 30), (80, 30)),
                                                       manager=mngr)
 
     select_g_source = pygame_gui.elements.UIDropDownMenu(options_list=CHANNELS,
                                                       starting_option=CHANNELS[1],
-                                                      relative_rect=pygame.Rect((screen_size[0] - 140, 30), (60, 30)),
+                                                      relative_rect=pygame.Rect((120, 30), (80, 30)),
                                                       manager=mngr)
 
     select_b_source = pygame_gui.elements.UIDropDownMenu(options_list=CHANNELS,
                                                       starting_option=CHANNELS[2],
-                                                      relative_rect=pygame.Rect((screen_size[0] - 80, 30), (60, 30)),
+                                                      relative_rect=pygame.Rect((210, 30), (80, 30)),
                                                       manager=mngr)
     
-    r_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((screen_size[0] - 200, 80), (190, 30)),
+    r_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((30, 80), (190, 30)),
                                                                 start_value=1.0,
                                                                 value_range=(0, 5),
                                                                 manager=mngr)
 
-    g_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((screen_size[0] - 200, 120), (190, 30)),
+    g_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((230, 80), (190, 30)),
                                                                 start_value=1.0,
                                                                 value_range=(0, 5),
                                                                 manager=mngr)
 
-    b_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((screen_size[0] - 200, 160), (190, 30)),
+    b_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((430, 80), (190, 30)),
                                                                 start_value=1.0,
                                                                 value_range=(0, 5),
                                                                 manager=mngr)
 
-    contrast_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((screen_size[0] - 200, 210), (190, 30)),
+    contrast_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((300, 30), (190, 30)),
                                                                 start_value=5.0,
                                                                 value_range=(0, 50),
                                                                 manager=mngr)
@@ -46,11 +46,11 @@ def create_sliders(mngr, screen_size):
 
 
     mirror_v = pygame_gui.elements.UICheckBox(text="Mirror vertical",
-                                              relative_rect=pygame.Rect((screen_size[0] - 200, 250), (30, 30)),
+                                              relative_rect=pygame.Rect((500, 30), (30, 30)),
                                               manager=mngr)
 
     mirror_h = pygame_gui.elements.UICheckBox(text="Mirror horizontal",
-                                              relative_rect=pygame.Rect((screen_size[0] - 200, 290), (30, 30)),
+                                              relative_rect=pygame.Rect((640, 30), (30, 30)),
                                               manager=mngr)
 
     # 2 галочки - удаление шума 4- и 8-связностью

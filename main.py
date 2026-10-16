@@ -11,16 +11,15 @@ import numpy as np
 import math
 # ================================= !!!! НА КНОПКУ "0" ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ !!!!!! ==========================
 from ui import create_sliders
-
+import kernel_operations
 # Добавление картинки в движок происходит через make_surface()
 # Картинка хранится в 3-мерном массиве [x, y, c] c - канал RGB
 # Данные находятся в диапазоне uint8: 0 - 255
 # screen.fill(color) - заполнить экран цветом
 # screen.blit(element) - нарисовать элемент (картинку/график) на экране
 # Позиция и цвет часто передаются как питоновского набора, например (1, 2, 3)
-
 SIZE_SCREEN = (0, 0)
-IMAGE = "img.png"
+IMAGE = "resting_knight.png"
 ZOOM_SCALE = 12
 BASE_DIR = Path(__file__).resolve().parent
 COLOR_MODES = [
@@ -35,6 +34,11 @@ M_CHANNELS = "channels"
 M_EFFECTS = "effects"
 showmode = M_CHANNELS
 
+d = 1
+
+four_conn = False
+ate_conn = False
+
 # значения окна W
 avg_r = 0
 avg_g = 0
@@ -43,7 +47,7 @@ avg_a = 0
 avg_all = 0
 
 with Image.open(IMAGE) as img:
-    SIZE_SCREEN = (max(700, img.width + 10), max(800, img.height + 120))
+    SIZE_SCREEN = (max(800, img.width + 10), max(800, img.height + 120))
 
 pygame.init()
 pygame.display.set_caption("python gaming 4k")
@@ -59,7 +63,7 @@ display_image = main_image.copy()
 image_rect = main_image.get_rect(topleft=(5, 120))
 rgb = pygame.surfarray.array3d(main_image)
 alpha = pygame.surfarray.array_alpha(main_image)
-
+print(f"rgb shape: {rgb.shape}")
 mean_rgb = rgb.mean(axis=(0, 1))
 mean_all = rgb.mean()
 print(mean_rgb, mean_all)
@@ -82,7 +86,7 @@ blue[:, :, 2] = pixels[:, :, 2]
 del pixels
 
 fig_red, ax_red = plt.subplots(figsize=(2, 2), dpi=100)
-ax_red.hist(red[:, :, 0].flatten(), bins=256, density=True)
+ax_red.hist(red[:, :, 0].flatten(), color='red', bins=256, density=True)
 ax_red.grid(True)
 
 # Добавление в окно pygame
@@ -95,7 +99,7 @@ hist_red_surf = pygame.image.frombytes(
 )
 
 fig_green, ax_green = plt.subplots(figsize=(2, 2), dpi=100)
-ax_green.hist(green[:, :, 1].flatten(), bins=256, density=True)
+ax_green.hist(green[:, :, 1].flatten(), color='green', bins=256, density=True)
 ax_green.grid(True)
 hist_green = FigureCanvasAgg(fig_green)
 hist_green.draw()
@@ -106,7 +110,7 @@ hist_green_surf = pygame.image.frombytes(
 )
 
 fig_blue, ax_blue = plt.subplots(figsize=(2, 2), dpi=100)
-ax_blue.hist(blue[:, :, 2].flatten(), bins=256, density=True)
+ax_blue.hist(blue[:, :, 2].flatten(), color='blue', bins=256, density=True)
 ax_blue.grid(True)
 hist_blue = FigureCanvasAgg(fig_blue)
 hist_blue.draw()
@@ -116,20 +120,42 @@ hist_blue_surf = pygame.image.frombytes(
     "RGBA",
 )
 
+# UI элементы
+
 modes_button = pygame_gui.elements.UIDropDownMenu(options_list=COLOR_MODES,
                                                   starting_option=COLOR_MODES[0],
                                                   relative_rect=pygame.Rect((20, 30), (100, 30)),
                                                   manager=channel_mode_manager)
 
 compare_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((140, 30), (250, 30)),
-                                                        start_value=slider_value,
-                                                        value_range=(slider_value, img.width),
+                                                    start_value=slider_value,
+                                                    value_range=(slider_value, img.width),
+                                                    manager=channel_mode_manager)
+
+d_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((140, 0), (100, 30)),
+                                                    start_value=d,
+                                                    value_range=(1, 10),
+                                                    manager=channel_mode_manager)
+
+four_checkbox = pygame_gui.elements.UICheckBox(text="4-связность",
+                                                relative_rect=pygame.Rect((390, 30), (30, 30)),
+                                                manager=channel_mode_manager)
+
+ate_checkbox = pygame_gui.elements.UICheckBox(text="8-связность",
+                                                relative_rect=pygame.Rect((510, 30), (30, 30)),
+                                                manager=channel_mode_manager)
+
+HandmadeFilter_checkbox = pygame_gui.elements.UICheckBox(text="wierdass filter",
+                                                        relative_rect=pygame.Rect((390, 2), (30, 30)),
                                                         manager=channel_mode_manager)
+
+save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((510, 70), (110, 30)),
+                                           text="Save image")
 
 (r_level_slider, g_level_slider, b_level_slider,
             contrast_slider,
             select_r_source, select_g_source, select_b_source,
-            mirror_v, mirror_h) = create_sliders(effects_mode_manager, SIZE_SCREEN) # Слайдеры для эффектов
+            mirror_v, mirror_h) = create_sliders(effects_mode_manager, SIZE_SCREEN)
 
 # изменения цвета изображения в зависимости от выбранного режима
 def process(rgb_image, mode):
@@ -156,8 +182,15 @@ def update_image():
 # обновление изображения на экране в зависимости от положения слайдера
 def update_image_with_channels():
     global display_image
+    rgb_filtered = rgb.copy()
+    if four_checkbox.get_state():
+        rgb_filtered = kernel_operations.the_four_connectivity(rgb)
+    elif ate_checkbox.get_state():
+        rgb_filtered = kernel_operations.the_eight_connectivity(rgb)
+    elif HandmadeFilter_checkbox.get_state():
+        rgb_filtered = kernel_operations.drunk_filter(rgb, d)
     x = int(slider_value)
-    image = rgb.copy()
+    image = rgb_filtered
     image[:x] = process(rgb[:x], modes_button.selected_option[0])
     surf = pygame.surfarray.make_surface(image).convert_alpha()
     display_image = surf
@@ -228,7 +261,7 @@ def draw_channels():
         image_x = mouse_x - image_rect.x
         image_y = mouse_y - image_rect.y
 
-        color = main_image.get_at((image_x, image_y))
+        color = display_image.get_at((image_x, image_y))
 
         area = pygame.Rect(0, 0, ZOOM_SCALE, ZOOM_SCALE)
         area.center = (image_x, image_y)
@@ -267,6 +300,8 @@ def draw_channels():
             True, (255, 255, 255))
         screen.blit(slider_text, (10, 70))
 
+    text = font.render(f"d = {d}", True, (255, 255, 255))
+    screen.blit(text, (245, 10))
     slider_text = font.render(f"Comparison", True, (255, 255, 255))
     screen.blit(slider_text, (140, 10))
 
@@ -275,8 +310,20 @@ def draw_channels():
 
 def draw_effects():
     # Делаем слайдеры для каждой настройки и разделители между ними в create_sliders()
-    # НЕ УСЛОЖНЯЕМ ИНТЕРФЕЙС И СЕБЕ ЖИЗНЬ!
+    # НЕ УСЛОЖНЯЕМ ИНТЕРФЕЙС И СЕБЕ ЖИЗНЬ!!!🙏🙏🙏🙏🙏🙏
+
     screen.fill((30, 30, 30))
+
+    # заголовки
+    text = font.render(f"Источники цветов (каналы)", True, (255, 255, 255))
+    screen.blit(text, (30, 10))
+
+    text = font.render(f"Количество цветов", True, (255, 255, 255))
+    screen.blit(text, (30, 65))
+
+    text = font.render(f"Контрастность", True, (255, 255, 255))
+    screen.blit(text, (300, 10))
+
     screen.blit(display_image, image_rect)
 
     effects_mode_manager.draw_ui(screen)
@@ -294,12 +341,23 @@ while running:
                             pygame_gui.UI_DROP_DOWN_MENU_CHANGED]:
             update_image()
         elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
-            slider_value = event.value
+            if (event.ui_element == compare_slider):
+                slider_value = event.value
+            elif (event.ui_element == d_slider):
+                d = event.value
             update_image()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_0:
                 showmode = M_EFFECTS if showmode == M_CHANNELS else M_CHANNELS
                 update_image()
+            elif event.key == pygame.K_8:
+                ate_checkbox.set_state(not ate_checkbox.get_state())
+            elif event.key == pygame.K_4:
+                four_checkbox.set_state(not four_checkbox.get_state())
+        elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element == save_button:
+                pygame.image.save(display_image, "output_image.png")
+
 
         channel_mode_manager.process_events(event)
         effects_mode_manager.process_events(event)
