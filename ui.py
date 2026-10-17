@@ -24,17 +24,17 @@ def create_sliders(eff_mngr, cn_map_mngr, screen_size):
     
     r_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((30, 80), (190, 30)),
                                                                 start_value=1.0,
-                                                                value_range=(0, 5),
+                                                                value_range=(-5, 5),
                                                                 manager=eff_mngr)
 
     g_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((230, 80), (190, 30)),
                                                                 start_value=1.0,
-                                                                value_range=(0, 5),
+                                                                value_range=(-5, 5),
                                                                 manager=eff_mngr)
 
     b_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((430, 80), (190, 30)),
                                                                 start_value=1.0,
-                                                                value_range=(0, 5),
+                                                                value_range=(-5, 5),
                                                                 manager=eff_mngr)
 
     contrast_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((300, 30), (190, 30)),
