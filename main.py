@@ -60,7 +60,6 @@ main_image = pygame.image.load(BASE_DIR / IMAGE).convert_alpha()
 display_image = main_image.copy()
 image_rect = main_image.get_rect(topleft=(5, 180))
 rgb = pygame.surfarray.array3d(main_image)
-alpha = pygame.surfarray.array_alpha(main_image)
 print(f"rgb shape: {rgb.shape}")
 mean_rgb = rgb.mean(axis=(0, 1))
 mean_all = rgb.mean()
@@ -158,14 +157,17 @@ HandmadeFilter_checkbox = pygame_gui.elements.UICheckBox(text="wierd filter",
                                                         relative_rect=pygame.Rect((390, 2), (30, 30)),
                                                         manager=channel_mode_manager)
 
-save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((510, 70), (110, 30)),
-                                           text="Save image")
+save_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((510, 70), (110, 30)),
+                                           text="Save image", 
+                                           manager=channel_mode_manager)
 
 (r_level_slider, g_level_slider, b_level_slider,
     contrast_slider,
     select_r_source, select_g_source, select_b_source,
+    r_level_inv, g_level_inv, b_level_inv,
     mirror_v, mirror_h, line_slider_for_graph,
-    four_conn_checkbox, eight_conn_checkbox, window_size_slider) = create_sliders(effects_mode_manager, cont_map_mode_manager, SIZE_SCREEN)
+    four_conn_checkbox, eight_conn_checkbox, window_size_slider,
+    save_button2, save_button3) = create_sliders(effects_mode_manager, cont_map_mode_manager, SIZE_SCREEN)
 
 # изменения цвета изображения в зависимости от выбранного режима
 def process(rgb_image, mode):
@@ -220,6 +222,7 @@ def update_image_with_effects():
     b_source = CHANNELS.index(select_b_source.selected_option[0])
     image = image[:, :, [r_source, g_source, b_source]]
 
+    # Усиление/ослабление
     channel_levels = np.array([
         r_level_slider.get_current_value(),
         g_level_slider.get_current_value(),
@@ -228,31 +231,35 @@ def update_image_with_effects():
 
     image *= channel_levels
 
+    # Инвертирование
+    if r_level_inv.get_state():
+        image[:, :, 0] = 255 - image[:, :, 0]
+
+    if g_level_inv.get_state():
+        image[:, :, 1] = 255 - image[:, :, 1]
+
+    if b_level_inv.get_state():
+        image[:, :, 2] = 255 - image[:, :, 2]
+
+    # Контраст
     contrast = contrast_slider.get_current_value()
     image = 256 / (1 + np.exp(contrast * (1/2 - (image/256.))))
 
     image = np.clip(np.rint(image), 0, 255).astype(np.uint8)
 
+    # отражение
     flip_h = mirror_h.get_state()
     flip_v = mirror_v.get_state()
 
-    image_alpha = alpha.copy()
-
     if flip_h:
         image = image[::-1, :, :]
-        image_alpha = image_alpha[::-1, :]
 
     if flip_v:
         image = image[:, ::-1, :]
-        image_alpha = image_alpha[:, ::-1]
 
     surf = pygame.surfarray.make_surface(
         np.ascontiguousarray(image)
-    ).convert_alpha()
-
-    surface_alpha = pygame.surfarray.pixels_alpha(surf)
-    surface_alpha[:] = image_alpha
-    del surface_alpha
+    )
 
     display_image = surf
 
@@ -454,7 +461,7 @@ while running:
             elif event.key == pygame.K_4:
                 four_checkbox.set_state(not four_checkbox.get_state())
         elif event.type == pygame_gui.UI_BUTTON_PRESSED:
-            if event.ui_element == save_button:
+            if event.ui_element in [save_button1, save_button2, save_button3]:
                 pygame.image.save(display_image, "output_image.png")
 
         channel_mode_manager.process_events(event)

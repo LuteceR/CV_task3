@@ -24,25 +24,35 @@ def create_sliders(eff_mngr, cn_map_mngr, screen_size):
     
     r_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((30, 80), (190, 30)),
                                                                 start_value=1.0,
-                                                                value_range=(-5, 5),
+                                                                value_range=(0, 5),
                                                                 manager=eff_mngr)
 
-    g_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((230, 80), (190, 30)),
+    r_level_inv = pygame_gui.elements.UICheckBox(text="",
+                                                 relative_rect=pygame.Rect((230, 80), (30, 30)),
+                                                    manager=eff_mngr)
+
+    g_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((270, 80), (190, 30)),
                                                                 start_value=1.0,
-                                                                value_range=(-5, 5),
+                                                                value_range=(0, 5),
+                                                                manager=eff_mngr)
+    
+    g_level_inv = pygame_gui.elements.UICheckBox(text="",
+                                                 relative_rect=pygame.Rect((470, 80), (30, 30)),
+                                                    manager=eff_mngr)
+
+    b_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((510, 80), (190, 30)),
+                                                                start_value=1.0,
+                                                                value_range=(0, 5),
                                                                 manager=eff_mngr)
 
-    b_level_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((430, 80), (190, 30)),
-                                                                start_value=1.0,
-                                                                value_range=(-5, 5),
-                                                                manager=eff_mngr)
+    b_level_inv = pygame_gui.elements.UICheckBox(text="",
+                                                 relative_rect=pygame.Rect((710, 80), (30, 30)),
+                                                    manager=eff_mngr)
 
     contrast_slider = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((300, 30), (190, 30)),
                                                                 start_value=5.0,
                                                                 value_range=(0, 50),
                                                                 manager=eff_mngr)
-
-
 
     mirror_v = pygame_gui.elements.UICheckBox(text="Mirror vertical",
                                               relative_rect=pygame.Rect((500, 30), (30, 30)),
@@ -57,6 +67,10 @@ def create_sliders(eff_mngr, cn_map_mngr, screen_size):
                                                             start_value=0.0,
                                                             value_range=(0, 1),
                                                             manager=eff_mngr)
+
+    save_button2 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((270, 140), (110, 30)),
+                                           text="Save image",
+                                           manager=eff_mngr)
 
     # ЗАДАНИЕ 7
     four_conn_checkbox = pygame_gui.elements.UICheckBox(text="4-связность",
@@ -73,10 +87,16 @@ def create_sliders(eff_mngr, cn_map_mngr, screen_size):
                                                         value_range=(1, 8),
                                                         manager=cn_map_mngr)
 
+    save_button3 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((510, 70), (110, 30)),
+                                           text="Save image",
+                                           manager=cn_map_mngr)
+
 
 
     return (r_level_slider, g_level_slider, b_level_slider,
             contrast_slider,
             select_r_source, select_g_source, select_b_source,
+            r_level_inv, g_level_inv, b_level_inv,
             mirror_v, mirror_h, line_slider_for_graph,
-            four_conn_checkbox, eight_conn_checkbox, window_size_slider)
+            four_conn_checkbox, eight_conn_checkbox, window_size_slider,
+            save_button2, save_button3)
