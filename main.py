@@ -9,17 +9,12 @@ from PIL import Image
 from pathlib import Path
 import numpy as np
 import math
-# ================================= !!!! НА КНОПКУ "0" ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ !!!!!! ==========================
+# =================================  НА КНОПКУ "0" ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ  ==========================
 from ui import create_sliders
 import kernel_operations
-# Добавление картинки в движок происходит через make_surface()
-# Картинка хранится в 3-мерном массиве [x, y, c] c - канал RGB
-# Данные находятся в диапазоне uint8: 0 - 255
-# screen.fill(color) - заполнить экран цветом
-# screen.blit(element) - нарисовать элемент (картинку/график) на экране
-# Позиция и цвет часто передаются как питоновского набора, например (1, 2, 3)
+
 SIZE_SCREEN = (0, 0)
-IMAGE = "resting_knight.png"
+IMAGE = "img.png"
 ZOOM_SCALE = 12
 BASE_DIR = Path(__file__).resolve().parent
 COLOR_MODES = [
@@ -30,9 +25,11 @@ COLOR_MODES = [
     "Gray"
 ]
 slider_value = 0
-M_CHANNELS = "channels"
-M_EFFECTS = "effects"
-showmode = M_CHANNELS
+mode_channels = "channels"
+mode_effects = "effects"
+mode_cont_map = "constrast_map"
+showmodes = [mode_channels, mode_effects, mode_cont_map]
+cur_showmode = mode_channels
 
 d = 1
 
@@ -56,17 +53,18 @@ clock = pygame.time.Clock()
 
 channel_mode_manager = pygame_gui.UIManager(SIZE_SCREEN, BASE_DIR / "theme.json")
 effects_mode_manager = pygame_gui.UIManager(SIZE_SCREEN, BASE_DIR / "theme.json")
+cont_map_mode_manager = pygame_gui.UIManager(SIZE_SCREEN, BASE_DIR / "theme.json")
 
 # convert_alpha замена прозрачных частей на черный
 main_image = pygame.image.load(BASE_DIR / IMAGE).convert_alpha()
 display_image = main_image.copy()
-image_rect = main_image.get_rect(topleft=(5, 120))
+image_rect = main_image.get_rect(topleft=(5, 180))
 rgb = pygame.surfarray.array3d(main_image)
 alpha = pygame.surfarray.array_alpha(main_image)
 print(f"rgb shape: {rgb.shape}")
 mean_rgb = rgb.mean(axis=(0, 1))
 mean_all = rgb.mean()
-print(mean_rgb, mean_all)
+
 
 clock = pygame.time.Clock()
 font = pygame.font.Font()
@@ -83,13 +81,13 @@ green[:, :, 1] = pixels[:, :, 1]
 
 blue = np.zeros_like(pixels, dtype=np.uint8)
 blue[:, :, 2] = pixels[:, :, 2]
+
+grayscale_image = np.mean(pixels[..., :3], axis=-1)
 del pixels
 
 fig_red, ax_red = plt.subplots(figsize=(2, 2), dpi=100)
 ax_red.hist(red[:, :, 0].flatten(), color='red', bins=256, density=True)
 ax_red.grid(True)
-
-# Добавление в окно pygame
 hist_red = FigureCanvasAgg(fig_red)
 hist_red.draw()
 hist_red_surf = pygame.image.frombytes(
@@ -120,6 +118,17 @@ hist_blue_surf = pygame.image.frombytes(
     "RGBA",
 )
 
+fig_line, ax_line = plt.subplots(figsize=(3, 2), dpi=100)
+ax_line.plot(grayscale_image[:, 0])
+ax_line.grid(True)
+plot_line = FigureCanvasAgg(fig_line)
+plot_line.draw()
+plot_line_surf = pygame.image.frombytes(
+    plot_line.buffer_rgba().tobytes(),
+    plot_line.get_width_height(),
+    "RGBA",
+)
+
 # UI элементы
 
 modes_button = pygame_gui.elements.UIDropDownMenu(options_list=COLOR_MODES,
@@ -145,7 +154,7 @@ ate_checkbox = pygame_gui.elements.UICheckBox(text="8-связность",
                                                 relative_rect=pygame.Rect((510, 30), (30, 30)),
                                                 manager=channel_mode_manager)
 
-HandmadeFilter_checkbox = pygame_gui.elements.UICheckBox(text="wierdass filter",
+HandmadeFilter_checkbox = pygame_gui.elements.UICheckBox(text="wierd filter",
                                                         relative_rect=pygame.Rect((390, 2), (30, 30)),
                                                         manager=channel_mode_manager)
 
@@ -153,16 +162,17 @@ save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((510, 70), 
                                            text="Save image")
 
 (r_level_slider, g_level_slider, b_level_slider,
-            contrast_slider,
-            select_r_source, select_g_source, select_b_source,
-            mirror_v, mirror_h) = create_sliders(effects_mode_manager, SIZE_SCREEN)
+    contrast_slider,
+    select_r_source, select_g_source, select_b_source,
+    mirror_v, mirror_h, line_slider_for_graph,
+    four_conn_checkbox, eight_conn_checkbox, window_size_slider) = create_sliders(effects_mode_manager, cont_map_mode_manager, SIZE_SCREEN)
 
 # изменения цвета изображения в зависимости от выбранного режима
 def process(rgb_image, mode):
     if mode == "Gray":
         rgb_image = rgb_image.astype(np.float32)
         grayscale_image = np.dot(rgb_image[..., :3], [0.2989, 0.5870, 0.1140])
-        return np.repeat(grayscale_image[:, :, np.newaxis], 3, axis=2)
+        return np.repeat(grayscale_image[:, :, np.newaxis], 3, axis=2) # np.mean(rgb_image[..., :3], axis=-1) # для усредн. серого
     rgb_image = rgb_image.astype(np.uint8)
     if mode == "Red":
         rgb_image[:, :, 1:] = 0
@@ -174,10 +184,12 @@ def process(rgb_image, mode):
 
 
 def update_image():
-    if showmode == M_CHANNELS:
+    if cur_showmode == mode_channels:
         update_image_with_channels()
-    else:
+    elif cur_showmode == mode_effects:
         update_image_with_effects()
+    elif cur_showmode == mode_cont_map:
+        update_image_with_cont_map()
 
 # обновление изображения на экране в зависимости от положения слайдера
 def update_image_with_channels():
@@ -197,7 +209,7 @@ def update_image_with_channels():
 
 
 def update_image_with_effects():
-    global display_image
+    global display_image, plot_line_surf, fig_line, ax_line, plot_line
 
     image = rgb.astype(np.float32)
 
@@ -243,6 +255,82 @@ def update_image_with_effects():
     del surface_alpha
 
     display_image = surf
+
+    # График профиля по строке
+    rgb_image = rgb.copy()
+    grayscale_image = np.mean(rgb_image[..., :3], axis=-1)
+
+    ax_line.clear() 
+    line = math.floor(line_slider_for_graph.get_current_value() * (img.height - 1))
+    ax_line.plot(grayscale_image[:, line])
+    ax_line.grid(True)
+    ax_line.set_ylim(0, 255)
+    plot_line.draw()
+    plot_line_surf = pygame.image.frombytes(
+        plot_line.buffer_rgba().tobytes(),
+        plot_line.get_width_height(),
+        "RGBA",
+    )
+
+def update_image_with_cont_map():
+    global display_image
+    if four_conn_checkbox.get_state():
+        kernel=np.array([[0, 1, 0],
+                        [1, 1, 1],
+                        [0, 1, 0]])
+    elif (eight_conn_checkbox.get_state()):
+        kernel = np.ones((3, 3), dtype=np.uint8)
+    else:
+        kernel_size = window_size_slider.get_current_value() * 2 + 1
+        kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
+
+    img = rgb.astype(np.float32)
+    gray = np.mean(img[..., :3], axis=-1)
+
+    kh, kw = kernel.shape
+    pad = kh // 2
+    padded = np.pad(gray, ((pad, pad), (pad, pad)), mode="edge")
+
+    H, W = gray.shape
+    contrast_map = np.zeros((H, W), dtype=np.float32)
+
+    # создание набора масок
+    windows = np.lib.stride_tricks.sliding_window_view( # нет Linux
+        padded,
+        (kh, kw)
+    )
+    # print(windows.shape) # выведет (img.w, img.h, kw, kh)
+
+    # приведение ядра к бинарным значениям
+    mask = kernel.astype(bool)
+
+    values = windows[:, :, mask]
+    means = values.mean(axis=-1)
+    contrast_map = np.sqrt(np.mean((values - means[:, :, None]) ** 2, axis=-1))
+
+    # for y in range(H):
+    #     for x in range(W):
+    #         y0 = y
+    #         y1 = y + kh
+    #         x0 = x
+    #         x1 = x + kw
+
+    #         window = padded[y0:y1, x0:x1]
+    #         mask = kernel.astype(bool)
+    #         values = window[mask]
+
+    #         mean = np.mean(values)
+    #         std = np.sqrt(np.mean((values - mean) ** 2))
+    #         contrast_map[y, x] = std
+
+    # нормализация в диапазон 0..255
+    c_min = contrast_map.min()
+    c_max = contrast_map.max()
+    cont_map = (contrast_map - c_min) / (c_max - c_min) * 255.0
+    cont_map = cont_map.astype(np.uint8)
+
+    res_image = np.stack((cont_map, cont_map, cont_map), axis=-1)
+    display_image = pygame.surfarray.make_surface(res_image).convert_alpha()
 
 
 def draw_channels():
@@ -300,11 +388,6 @@ def draw_channels():
             True, (255, 255, 255))
         screen.blit(slider_text, (10, 70))
 
-    text = font.render(f"d = {d}", True, (255, 255, 255))
-    screen.blit(text, (245, 10))
-    slider_text = font.render(f"Comparison", True, (255, 255, 255))
-    screen.blit(slider_text, (140, 10))
-
     channel_mode_manager.draw_ui(screen)
 
 
@@ -326,8 +409,24 @@ def draw_effects():
 
     screen.blit(display_image, image_rect)
 
+    cur_line = round(line_slider_for_graph.get_current_value() * img.height)
+    slider_text = font.render(f"Строка {cur_line}", True, (255, 255, 255))
+    screen.blit(slider_text, (30, 120))
+
+    mouse_pos = pygame.mouse.get_pos()
+    if line_slider_for_graph.rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, (200, 200, 200, 128), (image_rect.left, image_rect.top + cur_line - 1, img.width, 3))
+
+    screen.blit(plot_line_surf, (SIZE_SCREEN[1] - 330, 120))
+
     effects_mode_manager.draw_ui(screen)
 
+def draw_cont_map():
+    screen.fill((30, 30, 30))
+    screen.blit(display_image, image_rect)
+    screen.blit(font.render(f"Размер окна {window_size_slider.get_current_value() * 2 + 1}", True, (255, 255, 255)), (10, 100))
+
+    cont_map_mode_manager.draw_ui(screen)
 
 # Основной цикл отрисовки
 running = True
@@ -341,14 +440,14 @@ while running:
                             pygame_gui.UI_DROP_DOWN_MENU_CHANGED]:
             update_image()
         elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
-            if (event.ui_element == compare_slider):
+            if event.ui_element == compare_slider:
                 slider_value = event.value
             elif (event.ui_element == d_slider):
                 d = event.value
             update_image()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_0:
-                showmode = M_EFFECTS if showmode == M_CHANNELS else M_CHANNELS
+                cur_showmode = showmodes[(showmodes.index(cur_showmode) + 1) % 3]
                 update_image()
             elif event.key == pygame.K_8:
                 ate_checkbox.set_state(not ate_checkbox.get_state())
@@ -358,16 +457,19 @@ while running:
             if event.ui_element == save_button:
                 pygame.image.save(display_image, "output_image.png")
 
-
         channel_mode_manager.process_events(event)
         effects_mode_manager.process_events(event)
+        cont_map_mode_manager.process_events(event)
 
-    if showmode == M_CHANNELS:
+    if cur_showmode == mode_channels:
         draw_channels()
         channel_mode_manager.update(time_delta)
-    else:
+    elif cur_showmode == mode_effects:
         draw_effects()
         effects_mode_manager.update(time_delta)
+    elif cur_showmode == mode_cont_map:
+        draw_cont_map()
+        cont_map_mode_manager.update(time_delta)
 
     pygame.display.flip()
     clock.tick(60)
