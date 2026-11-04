@@ -23,7 +23,7 @@ class Aliasing:
 
     def get_ui(self, manager: pgui.UIManager, x = 20, y = 20, w = 600, h = 300) -> pgui.core.UIContainer:
         """
-        ts returns ui
+        ts returns container that contains ui
         """
         container = pgui.core.UIContainer(relative_rect=pg.Rect((x, y), (w, h)),
                                           manager = manager)
@@ -50,13 +50,13 @@ class Aliasing:
         kernel = np.eye(kernel_size, kernel_size)
         return kernel
         
-    def apply_median_filter(self):
+    def apply_median_filter(self, i):
         """
         do smth
         """
         pass
 
-    def apply_sigma_filter(self):
+    def apply_sigma_filter(self, i):
         """
         do smth
         """

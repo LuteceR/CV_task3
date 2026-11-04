@@ -1,3 +1,7 @@
+"""
+main file
+"""
+
 from pathlib import Path
 
 import pygame as pg
@@ -50,8 +54,11 @@ def main():
 
     # convert_alpha - замена прозрачных частей на черный
     main_image = pg.image.load(BASE_DIR / IMAGE).convert_alpha()
-    display_image = main_image.copy()
-    image_rect = main_image.get_rect()
+    
+    # main_image не трогаем дабы не портить ориг
+    image_al = main_image.copy()
+    image_ch = main_image.copy()
+    image_sh = main_image.copy()
     
     # сюда складируем UI для каждой вкладки
     chrom_container = nav.get_tab_container(0)
@@ -59,7 +66,7 @@ def main():
     sharp_container = nav.get_tab_container(2)
 
     #  вот так добавляем фон для табов
-    aliasing_container.add_background_image(main_image)
+    aliasing_container.add_background_image(image_al)
     aliasing_container.set_container(aliasing_ui_container)
 
     clock = pg.time.Clock()
@@ -76,6 +83,7 @@ def main():
                     ind = 0 if nav.current_container_index is None else nav.current_container_index  
                     nav.switch_current_container((ind + 1)%3)
                     nav.rebuild()
+                    print(image_al)
             mode_manager.process_events(event)
         mode_manager.update(time_delta)
         mode_manager.draw_ui(screen)
