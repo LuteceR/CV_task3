@@ -6,35 +6,39 @@ from pathlib import Path
 
 import pygame as pg
 import pygame_gui
-import matplotlib
+import matplotlib # not used
 from PIL import Image
 
 from aliasing.aliasing import Aliasing
+from chromaticity.chromaticity import Chromaticity
+from sharpness.sharpness import Sharpness
 
-matplotlib.use("Agg")
+matplotlib.use("Agg") # not used
 
-IMAGE = "resting_knight.png"
+IMAGE = "img.png"
 ZOOM_SCALE = 12
 BASE_DIR = Path(__file__).resolve().parent
 
-with Image.open(IMAGE) as img:
-    SIZE_SCREEN = (img.width, img.height)
+
+def limit(val, min_val, max_val):
+    """
+    limit value to min and max
+    """
+    return max(min_val, min(val, max_val))
+
 
 def main():
     """
     main function of app
     """
 
-    aliasing_obj = Aliasing()
-
-    if pg.get_sdl_version()[0] == 2:
-        pg.mixer.pre_init(44100, 32, 2, 1024)
     pg.init()
-    if pg.mixer and not pg.mixer.get_init():
-        print("Warning, no sound")
-        pg.mixer = None    # Основной цикл отрисовки
-    
-    pg.display.set_caption("python gaming 8kก็็็็็็็็็็็็็็็็็็")
+    with Image.open(IMAGE) as img:
+        infoObject = pg.display.Info()
+        SIZE_SCREEN = (limit(img.width, 600, infoObject.current_w - 100),
+                    limit(img.height, 600, infoObject.current_h - 100))
+
+    pg.display.set_caption("python gaͥ̑͊͠₥ing 𝟠kก็็็็็็็็็็็็็็็็็็")
 
     screen = pg.display.set_mode(SIZE_SCREEN)
     
@@ -42,22 +46,38 @@ def main():
     nav = pygame_gui.elements.UITabContainer(relative_rect=pg.Rect((0, 0), SIZE_SCREEN),
                                              manager=mode_manager)
 
-    aliasing_ui_container = aliasing_obj.get_ui(manager=mode_manager,
-                                             x=0,
-                                             y=40,
-                                             w=SIZE_SCREEN[0],
-                                             h=SIZE_SCREEN[1])
-    
     nav.add_tab("Цветность", "#Цветность")
     nav.add_tab("Сглаживание", "#Сглаживание")
     nav.add_tab("Резкость", "#Резкость")
 
     # convert_alpha - замена прозрачных частей на черный
     main_image = pg.image.load(BASE_DIR / IMAGE).convert_alpha()
+
+    chromaticity_obj = Chromaticity(main_image)
+    aliasing_obj = Aliasing()
+    sharpness_obj = Sharpness()
+
+        
+    chrom_ui_container = chromaticity_obj.get_ui(manager=mode_manager,
+                                                      x=0,
+                                                      y=40,
+                                                      w=SIZE_SCREEN[0],
+                                                      h=SIZE_SCREEN[1])
+    
+    aliasing_ui_container = aliasing_obj.get_ui(manager=mode_manager,
+                                             x=0,
+                                             y=40,
+                                             w=SIZE_SCREEN[0],
+                                             h=SIZE_SCREEN[1])
+
+    sharp_ui_container = sharpness_obj.get_ui(manager=mode_manager,
+                                                      x=0,
+                                                      y=40,
+                                                      w=SIZE_SCREEN[0],
+                                                      h=SIZE_SCREEN[1])
     
     # main_image не трогаем дабы не портить ориг
     image_al = main_image.copy()
-    image_ch = main_image.copy()
     image_sh = main_image.copy()
     
     # сюда складируем UI для каждой вкладки
@@ -66,8 +86,14 @@ def main():
     sharp_container = nav.get_tab_container(2)
 
     #  вот так добавляем фон для табов
-    aliasing_container.add_background_image(image_al)
-    aliasing_container.set_container(aliasing_ui_container)
+    chrom_ui_container.set_container(chrom_container)
+
+    aliasing_container.add_background_image(image_al) # А зачем? Если мы будем обрабатывать изображение, то легче менять само изображение и 
+                                                        # передовать его в конструкторе (как в режиме Chromaticity)
+    aliasing_ui_container.set_container(aliasing_container)
+
+    sharp_container.add_background_image(image_sh)
+    sharp_ui_container.set_container(sharp_container)
 
     clock = pg.time.Clock()
 
@@ -85,7 +111,10 @@ def main():
                     nav.rebuild()
                     print(image_al)
             mode_manager.process_events(event)
+            chromaticity_obj.process_event(event)
         mode_manager.update(time_delta)
+        
+        screen.fill((0, 0, 0))
         mode_manager.draw_ui(screen)
         pg.display.flip()
         clock.tick(60)

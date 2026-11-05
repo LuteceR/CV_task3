@@ -12,14 +12,15 @@ class Aliasing:
     3. Sigma filter
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, source_image: pg.Surface | None = None):
         """
         constructor of Aliasing class object
         """
+        self.source_image = source_image
         self.rect_filter_val = False
         self.median_filter_val = False
         self.sigma_filter_val = False
-        pass
+
 
     def get_ui(self, manager: pgui.UIManager, x = 20, y = 20, w = 600, h = 300) -> pgui.core.UIContainer:
         """
@@ -30,15 +31,14 @@ class Aliasing:
 
         # кнопочки 💅🏼
         rect_btn = pgui.elements.UICheckBox(relative_rect=pg.Rect((x+10, y), (20,20)),
-                                            text="Прямоугольный фильтр")
+                                            text="Прямоугольный фильтр",
+                                            container=container)
         median_btn = pgui.elements.UICheckBox(relative_rect=pg.Rect((x + 210, y), (20,20)),
-                                              text="Медианный фильтр")
+                                              text="Медианный фильтр",
+                                              container=container)
         sigma_btn = pgui.elements.UICheckBox(relative_rect=pg.Rect((x + 2 * 200, y), (20,20)),
-                                             text="Сигма-фильтр")
-
-        container.add_element(rect_btn)
-        container.add_element(median_btn)
-        container.add_element(sigma_btn)
+                                             text="Сигма-фильтр",
+                                             container=container)
 
         return container
         
