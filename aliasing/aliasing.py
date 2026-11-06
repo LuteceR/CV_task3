@@ -43,20 +43,26 @@ class Aliasing:
         return container
         
 
-    def apply_rectangle_filter(self, i, kernel_size = 3):
+    def apply_rectangle_filter_kernel_3(self, img : pg.Surface):
         """
-        do smth
+        do smth with kernel 3
         """
-        kernel = np.eye(kernel_size, kernel_size)
-        return kernel
+        I_org = pg.surfarray.array3d(img)
+        I = np.pad(I_org.astype('f'), ((1,1), (1,1), (0,0)), mode="edge")
+        res = (
+            I[:-2, :-2] + I[:-2, 1:-1] + I[:-2, 2:] +
+            I[1:-1, :-2] + I[1:-1, 1:-1] + I[1:-1, 2:] +
+            I[2:, :-2] + I[2:, 1:-1] + I[2:, 2:]
+        )
+        return (res/9).astype(int)
         
-    def apply_median_filter(self, i):
+    def apply_median_filter(self, img : pg.Surface):
         """
         do smth
         """
         pass
 
-    def apply_sigma_filter(self, i):
+    def apply_sigma_filter(self, img : pg.Surface):
         """
         do smth
         """

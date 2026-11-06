@@ -79,7 +79,7 @@ def main():
     # main_image не трогаем дабы не портить ориг
     image_al = main_image.copy()
     image_sh = main_image.copy()
-    
+
     # сюда складируем UI для каждой вкладки
     chrom_container = nav.get_tab_container(0)
     aliasing_container = nav.get_tab_container(1)
@@ -94,6 +94,8 @@ def main():
 
     sharp_container.add_background_image(image_sh)
     sharp_ui_container.set_container(sharp_container)
+
+    aliasing_obj.apply_rectangle_filter_kernel_3(image_al)
 
     clock = pg.time.Clock()
 
@@ -110,6 +112,17 @@ def main():
                     nav.switch_current_container((ind + 1)%3)
                     nav.rebuild()
                     print(image_al)
+            elif event.type in [
+                pygame_gui.UI_CHECK_BOX_CHECKED,
+                pygame_gui.UI_CHECK_BOX_UNCHECKED
+            ]:
+                if nav.current_container_index == 1:
+                    if event.ui_object_id == "rect_filter":
+                        image_edited = aliasing_obj.apply_rectangle_filter_kernel_3(image_al)
+                        surf = pg.surfarray.make_surface(image_edited)
+                        aliasing_container.remove_background_image(0)
+                        aliasing_container.add_background_image(surf)
+
             mode_manager.process_events(event)
             chromaticity_obj.process_event(event)
         mode_manager.update(time_delta)
