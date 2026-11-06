@@ -17,6 +17,7 @@ matplotlib.use("Agg") # not used
 
 IMAGE = "resting_knight.png"
 ZOOM_SCALE = 12
+IMAGE = "img.png"
 BASE_DIR = Path(__file__).resolve().parent
 
 
@@ -56,8 +57,9 @@ def main():
 
     chromaticity_obj = Chromaticity(main_image)
     aliasing_obj = Aliasing()
-    sharpness_obj = Sharpness()
+    sharpness_obj = Sharpness(main_image)
 
+        
     chrom_ui_container = chromaticity_obj.get_ui(manager=mode_manager,
                                                       x=0,
                                                       y=40,
@@ -72,15 +74,18 @@ def main():
                                              h=SIZE_SCREEN[1])
 
     sharp_ui_container = sharpness_obj.get_ui(manager=mode_manager,
-                                                x=0,
-                                                y=40,
-                                                w=SIZE_SCREEN[0],
-                                                h=SIZE_SCREEN[1])
-
+                                                      x=0,
+                                                      y=40,
+                                                      w=SIZE_SCREEN[0],
+                                                      h=SIZE_SCREEN[1])
+    
     # сюда складируем UI для каждой вкладки
     chrom_container = nav.get_tab_container(0)
     aliasing_container = nav.get_tab_container(1)
     sharp_container = nav.get_tab_container(2)
+
+    image_al = main_image.copy()
+    aliasing_container.add_background_image(image_al)
 
     chrom_ui_container.set_container(chrom_container)
     aliasing_ui_container.set_container(aliasing_container)
@@ -92,6 +97,8 @@ def main():
     running = True
     while running:
         time_delta = clock.tick(60) / 1000.0
+        if nav.get_tab()['text'] == 'Цветность':
+            chromaticity_obj.rehide_panels()
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -104,9 +111,9 @@ def main():
 
             aliasing_obj.process_event(event, mode_manager)
             mode_manager.process_events(event)
+            # Место для aliasing_obj.process_event(event)
             chromaticity_obj.process_event(event)
-
-        
+            sharpness_obj.process_event(event)
         mode_manager.update(time_delta)
         screen.fill((0, 0, 0))
         mode_manager.draw_ui(screen)

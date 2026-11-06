@@ -12,7 +12,7 @@ class Chromaticity:
     * вырезание диапазона яркости
     """
 
-    SUBMODES = {
+    MODES = {
         "Логарифмическое преобразование": [], # не отображать
         "Степенное преобразование": [("Показатель степени", 1.0, (0.1, 10.0))],
         "Бинарное преобразование": [("Порог", 128, (0, 255))],
@@ -36,8 +36,8 @@ class Chromaticity:
         )
 
         self.mode_selector = pgui.elements.UIDropDownMenu(
-            options_list=list(self.SUBMODES),
-            starting_option=next(iter(self.SUBMODES)),
+            options_list=list(self.MODES),
+            starting_option=next(iter(self.MODES)),
             relative_rect=pg.Rect((10, 4), (280, 24)),
             manager=manager,
             container=container,
@@ -52,13 +52,13 @@ class Chromaticity:
 
         self.mode_panels = {}
         self.parameter_sliders = {}
-        for index, (mode, sliders) in enumerate(self.SUBMODES.items()):
+        for index, (mode, sliders) in enumerate(self.MODES.items()):
             panel = pgui.core.UIContainer(
                 relative_rect=pg.Rect((290, 4), (w - 20, 150)),
                 manager=manager,
                 container=container,
             )
-            if index == 0:
+            if index != 0:
                 panel.hide()
             self.mode_panels[mode] = panel
 
@@ -79,7 +79,7 @@ class Chromaticity:
                     )
                 )
            
-        self.selected_mode = next(iter(self.SUBMODES))
+        self.selected_mode = next(iter(self.MODES))
         self.redraw_image()
         return container
 
@@ -102,6 +102,14 @@ class Chromaticity:
             and event.ui_element in [slider for sliders in self.parameter_sliders.values() for slider in sliders]
         ):
             self.redraw_image()
+
+
+    def rehide_panels(self):
+        for mode, panel in self.mode_panels.items():
+            if mode == self.selected_mode:
+                panel.show()
+            else:
+                panel.hide()
 
 
     def redraw_image(self):
