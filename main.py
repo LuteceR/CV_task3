@@ -17,7 +17,7 @@ matplotlib.use("Agg") # not used
 
 IMAGE = "resting_knight.png"
 ZOOM_SCALE = 12
-IMAGE = "img.png"
+# IMAGE = "img.png"
 BASE_DIR = Path(__file__).resolve().parent
 
 
@@ -85,7 +85,6 @@ def main():
     sharp_container = nav.get_tab_container(2)
 
     image_al = main_image.copy()
-    aliasing_container.add_background_image(image_al)
 
     chrom_ui_container.set_container(chrom_container)
     aliasing_ui_container.set_container(aliasing_container)
