@@ -16,7 +16,6 @@ from sharpness.sharpness import Sharpness
 matplotlib.use("Agg") # not used
 
 IMAGE = "img.png"
-ZOOM_SCALE = 12
 BASE_DIR = Path(__file__).resolve().parent
 
 
@@ -55,7 +54,7 @@ def main():
 
     chromaticity_obj = Chromaticity(main_image)
     aliasing_obj = Aliasing()
-    sharpness_obj = Sharpness()
+    sharpness_obj = Sharpness(main_image)
 
         
     chrom_ui_container = chromaticity_obj.get_ui(manager=mode_manager,
@@ -76,23 +75,16 @@ def main():
                                                       w=SIZE_SCREEN[0],
                                                       h=SIZE_SCREEN[1])
     
-    # main_image не трогаем дабы не портить ориг
-    image_al = main_image.copy()
-    image_sh = main_image.copy()
-
     # сюда складируем UI для каждой вкладки
     chrom_container = nav.get_tab_container(0)
     aliasing_container = nav.get_tab_container(1)
     sharp_container = nav.get_tab_container(2)
 
-    #  вот так добавляем фон для табов
+    image_al = main_image.copy()
+    aliasing_container.add_background_image(image_al)
+
     chrom_ui_container.set_container(chrom_container)
-
-    aliasing_container.add_background_image(image_al) # А зачем? Если мы будем обрабатывать изображение, то легче менять само изображение и 
-                                                        # передовать его в конструкторе (как в режиме Chromaticity)
     aliasing_ui_container.set_container(aliasing_container)
-
-    sharp_container.add_background_image(image_sh)
     sharp_ui_container.set_container(sharp_container)
 
     aliasing_obj.apply_rectangle_filter_kernel_3(image_al)
@@ -102,6 +94,8 @@ def main():
     running = True
     while running:
         time_delta = clock.tick(60) / 1000.0
+        if nav.get_tab()['text'] == 'Цветность':
+            chromaticity_obj.rehide_panels()
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -112,8 +106,8 @@ def main():
                     nav.switch_current_container((ind + 1)%3)
                     nav.rebuild()
                     print(image_al)
-            elif event.type in [
-                pygame_gui.UI_CHECK_BOX_CHECKED,
+            elif event.type in [ ## !! Это че такое !! сделай нормально: в aliasing.py создай метод process_event()
+                pygame_gui.UI_CHECK_BOX_CHECKED, # в нём весь код обработки, как в chromaticity_obj.process_event(event) ниже
                 pygame_gui.UI_CHECK_BOX_UNCHECKED
             ]:
                 if nav.current_container_index == 1:
@@ -124,7 +118,9 @@ def main():
                         aliasing_container.add_background_image(surf)
 
             mode_manager.process_events(event)
+            # Место для aliasing_obj.process_event(event)
             chromaticity_obj.process_event(event)
+            sharpness_obj.process_event(event)
         mode_manager.update(time_delta)
         
         screen.fill((0, 0, 0))
