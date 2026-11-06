@@ -15,7 +15,7 @@ from sharpness.sharpness import Sharpness
 
 matplotlib.use("Agg") # not used
 
-IMAGE = "img.png"
+IMAGE = "resting_knight.png"
 ZOOM_SCALE = 12
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -52,12 +52,12 @@ def main():
 
     # convert_alpha - замена прозрачных частей на черный
     main_image = pg.image.load(BASE_DIR / IMAGE).convert_alpha()
+    image_al = main_image.copy()
 
     chromaticity_obj = Chromaticity(main_image)
     aliasing_obj = Aliasing()
     sharpness_obj = Sharpness()
 
-        
     chrom_ui_container = chromaticity_obj.get_ui(manager=mode_manager,
                                                       x=0,
                                                       y=40,
@@ -65,37 +65,27 @@ def main():
                                                       h=SIZE_SCREEN[1])
     
     aliasing_ui_container = aliasing_obj.get_ui(manager=mode_manager,
+                                             img=image_al,
                                              x=0,
-                                             y=40,
+                                             y=30,
                                              w=SIZE_SCREEN[0],
                                              h=SIZE_SCREEN[1])
 
     sharp_ui_container = sharpness_obj.get_ui(manager=mode_manager,
-                                                      x=0,
-                                                      y=40,
-                                                      w=SIZE_SCREEN[0],
-                                                      h=SIZE_SCREEN[1])
-    
-    # main_image не трогаем дабы не портить ориг
-    image_al = main_image.copy()
-    image_sh = main_image.copy()
+                                                x=0,
+                                                y=40,
+                                                w=SIZE_SCREEN[0],
+                                                h=SIZE_SCREEN[1])
 
     # сюда складируем UI для каждой вкладки
     chrom_container = nav.get_tab_container(0)
     aliasing_container = nav.get_tab_container(1)
     sharp_container = nav.get_tab_container(2)
 
-    #  вот так добавляем фон для табов
     chrom_ui_container.set_container(chrom_container)
-
-    aliasing_container.add_background_image(image_al) # А зачем? Если мы будем обрабатывать изображение, то легче менять само изображение и 
-                                                        # передовать его в конструкторе (как в режиме Chromaticity)
     aliasing_ui_container.set_container(aliasing_container)
 
-    sharp_container.add_background_image(image_sh)
     sharp_ui_container.set_container(sharp_container)
-
-    aliasing_obj.apply_rectangle_filter_kernel_3(image_al)
 
     clock = pg.time.Clock()
 
@@ -111,25 +101,19 @@ def main():
                     ind = 0 if nav.current_container_index is None else nav.current_container_index  
                     nav.switch_current_container((ind + 1)%3)
                     nav.rebuild()
-                    print(image_al)
-            elif event.type in [
-                pygame_gui.UI_CHECK_BOX_CHECKED,
-                pygame_gui.UI_CHECK_BOX_UNCHECKED
-            ]:
-                if nav.current_container_index == 1:
-                    if event.ui_object_id == "rect_filter":
-                        image_edited = aliasing_obj.apply_rectangle_filter_kernel_3(image_al)
-                        surf = pg.surfarray.make_surface(image_edited)
-                        aliasing_container.remove_background_image(0)
-                        aliasing_container.add_background_image(surf)
 
+            aliasing_obj.process_event(event, mode_manager)
             mode_manager.process_events(event)
             chromaticity_obj.process_event(event)
-        mode_manager.update(time_delta)
+
         
+        mode_manager.update(time_delta)
         screen.fill((0, 0, 0))
         mode_manager.draw_ui(screen)
+        if nav.current_container_index == 1:
+            aliasing_obj.zoom_thing(screen, pg.mouse.get_pos())
         pg.display.flip()
+
         clock.tick(60)
 
 if __name__ == "__main__":
