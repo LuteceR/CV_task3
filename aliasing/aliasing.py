@@ -11,27 +11,27 @@ class Aliasing:
     2. Median filter
     3. Sigma filter
     """
-    rect_btn: pgui.elements.UICheckBox = None
-    median_btn: pgui.elements.UICheckBox = None
-    sigma_btn: pgui.elements.UICheckBox = None
-    img_ui: pgui.elements.UIImage = None
-    image_surf: pg.Surface = None
-    img_org: pg.Surface = None
+    rect_btn: pgui.elements.UICheckBox
+    median_btn: pgui.elements.UICheckBox
+    sigma_btn: pgui.elements.UICheckBox
+    img_ui: pgui.elements.UIImage
+    image_surf: pg.Surface
+    img_org: pg.Surface
 
     ZOOM_SCALE = 12
-    SIZE_SCREEN = None
+    SIZE_SCREEN: tuple[int, int]
 
     def __init__(self):
         """
         constructor of Aliasing class object
         """
 
-    def get_ui(self, 
-               manager: pgui.UIManager, 
-               img: pg.surface, 
-               x = 20, 
-               y = 20, 
-               w = 600, 
+    def get_ui(self,
+               manager: pgui.UIManager,
+               img: pg.surface.Surface,
+               x = 20,
+               y = 20,
+               w = 600,
                h = 300) -> pgui.core.UIContainer:
         """
         ts returns container that contains ui
@@ -104,8 +104,7 @@ class Aliasing:
                 pg.draw.rect(screen, (255, 255, 255), zoom_rect, 2)
         
     def process_event(self,
-                      event: pg.event.Event,
-                      manager: pgui.UIManager):
+                      event: pg.event.Event):
         """
         process events
         """
@@ -179,21 +178,10 @@ class Aliasing:
         """
         I_org = pg.surfarray.array3d(img_ui)
         I = np.pad(I_org.astype('f'), ((1,1), (1,1), (0,0)), mode="edge")
-        neighbors = [
-            I[:-2, :-2],
-            I[:-2, 1:-1],
-            I[:-2, 2:],
-            I[1:-1, :-2],
-            I[1:-1, 1:-1],
-            I[1:-1, 2:],
-            I[2:, :-2],
-            I[2:, 1:-1],
-            I[2:, 2:]
-        ]
         res = (
-            neighbors[0] + 2*neighbors[1] + neighbors[2] +
-            2*neighbors[3] + 4*neighbors[4] + 2*neighbors[5] +
-            neighbors[6] + 2*neighbors[7] + neighbors[8]
+            1*I[:-2, :-2]   + 2*I[:-2, 1:-1]    + 1*I[:-2, 2:] +
+            2*I[1:-1, :-2]  + 4*I[1:-1, 1:-1]   + 2*I[1:-1, 2:] +
+            1*I[2:, :-2]    + 2*I[2:, 1:-1]     + 1*I[2:, 2:]
         )
         return pg.surfarray.make_surface((res/16).astype(np.uint8))
     

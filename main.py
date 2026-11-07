@@ -108,7 +108,7 @@ def main():
                     nav.switch_current_container((ind + 1)%3)
                     nav.rebuild()
 
-            aliasing_obj.process_event(event, mode_manager)
+            aliasing_obj.process_event(event)
             mode_manager.process_events(event)
             # Место для aliasing_obj.process_event(event)
             chromaticity_obj.process_event(event)
